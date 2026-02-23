@@ -1,11 +1,10 @@
 [gd_scene format=3 uid="uid://cc1m2a1obsyn4"]
 
-[ext_resource type="Script" uid="uid://dryjfa4g2sq1x" path="res://demo/addons/fpc/character.gd" id="1_0t4e8"]
-[ext_resource type="Script" uid="uid://dstvr4bo0tr3k" path="res://demo/addons/fpc/EditorModule.gd" id="3_v3ckk"]
-[ext_resource type="Script" uid="uid://oau472whit0c" path="res://demo/addons/fpc/debug.gd" id="3_x1wcc"]
-[ext_resource type="AudioStream" uid="uid://d2r7yh65wd1sg" path="res://demo/sounds/step2.wav" id="5_vnnjw"]
-[ext_resource type="Script" uid="uid://cwwvs8e51jhep" path="res://spatial_audio_player_3d.gd" id="7_v06ui"]
-
+[ext_resource type="Script" uid="uid://dryjfa4g2sq1x" path="res://addons/demo/addons/fpc/character.gd" id="1_0t4e8"]
+[ext_resource type="Script" uid="uid://dstvr4bo0tr3k" path="res://addons/demo/addons/fpc/EditorModule.gd" id="3_v3ckk"]
+[ext_resource type="Script" uid="uid://oau472whit0c" path="res://addons/demo/addons/fpc/debug.gd" id="3_x1wcc"]
+[ext_resource type="AudioStream" uid="uid://d2r7yh65wd1sg" path="res://addons/demo/sounds/step2.wav" id="5_vnnjw"]
+[ext_resource type="Script" uid="uid://cwwvs8e51jhep" path="res://addons/spatial_audio_player_3d.gd" id="7_v06ui"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_uy03j"]
 
@@ -411,6 +410,5 @@ max_polyphony = 5
 script = ExtResource("7_v06ui")
 ray_distribution = 1
 shape_scatter_randomness = 25
-ignore_floor = true
 audio_occlusion = false
-metadata/_custom_type_script = "uid://c0mett6hd45b3"
+attenuation_function = 4

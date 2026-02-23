@@ -42,7 +42,10 @@ class_name AcousticBody
 
 ## The acoustic material that describes how this surface absorbs, scatters,
 ## and transmits sound energy.
-@export var acoustic_material : AcousticMaterial
+@export var acoustic_material : AcousticMaterial : 
+	set(value):
+		acoustic_material = value
+		update_configuration_warnings()
 
 
 func _get_configuration_warnings() -> PackedStringArray:

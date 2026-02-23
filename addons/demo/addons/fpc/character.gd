@@ -59,14 +59,14 @@ extends CharacterBody3D
 @export_group("Controls")
 ## Use the Input Map to map a mouse/keyboard input to an action and add a reference to it to this dictionary to be used in the script.
 @export var controls : Dictionary = {
-	LEFT = "move_left",
-	RIGHT = "move_right",
-	FORWARD = "move_forward",
-	BACKWARD = "move_backward",
-	JUMP = "move_jump",
-	CROUCH = "move_crouch",
-	SPRINT = "move_sprint",
-	PAUSE = "gui_escape"
+	LEFT = KEY_A,
+	RIGHT = KEY_D,
+	FORWARD = KEY_W,
+	BACKWARD = KEY_S,
+	JUMP = KEY_SPACE,
+	CROUCH = KEY_CTRL,
+	SPRINT = KEY_SHIFT,
+	PAUSE = KEY_ESCAPE
 	}
 @export_subgroup("Controller Specific")
 ## This only affects how the camera is handled, the rest should be covered by adding controller inputs to the existing actions in the Input Map.
@@ -171,7 +171,6 @@ func _ready():
 		change_reticle(default_reticle)
 	$UserInterface/DebugPanel.add_property("Spatial Audio Effects Disabled",  SpatialAudioPlayer3D.global_effects_disabled, 5)
 	initialize_animations()
-	check_controls()
 	enter_normal_state()
 	
 	if OS.get_name() == "Web":
@@ -215,7 +214,8 @@ func _physics_process(delta): # Most things happen here.
 	var input_dir = Vector2.ZERO
 
 	if not immobile: # Immobility works by interrupting user input, so other forces can still be applied to the player
-		input_dir = Input.get_vector(controls.LEFT, controls.RIGHT, controls.FORWARD, controls.BACKWARD)
+		
+		input_dir = get_key_vector(controls.LEFT, controls.RIGHT, controls.FORWARD, controls.BACKWARD)
 
 	handle_movement(delta, input_dir)
 
@@ -240,7 +240,12 @@ func _physics_process(delta): # Most things happen here.
 	update_debug_menu_per_tick()
 
 	was_on_floor = is_on_floor() # This must always be at the end of physics_process
-
+func get_key_vector(negative_x: Key, positive_x: Key, negative_y: Key, positive_y: Key) -> Vector2:
+	var vec = Vector2(
+		float(Input.is_key_pressed(positive_x)) - float(Input.is_key_pressed(negative_x)),
+		float(Input.is_key_pressed(positive_y)) - float(Input.is_key_pressed(negative_y))
+	)
+	return vec.normalized() if vec.length() > 1.0 else vec
 #endregion
 
 #region Input Handling
@@ -248,12 +253,12 @@ func _physics_process(delta): # Most things happen here.
 func handle_jumping():
 	if jumping_enabled:
 		if continuous_jumping: # Hold down the jump button
-			if Input.is_action_pressed(controls.JUMP) and is_on_floor() and !low_ceiling:
+			if Input.is_key_pressed(controls.JUMP) and is_on_floor() and !low_ceiling:
 				if jump_animation:
 					JUMP_ANIMATION.play("jump", 0.25)
 				velocity.y += jump_velocity # Adding instead of setting so jumping on slopes works properly
 		else:
-			if Input.is_action_just_pressed(controls.JUMP) and is_on_floor() and !low_ceiling:
+			if Input.is_key_pressed(controls.JUMP) and is_on_floor() and !low_ceiling:
 				if jump_animation:
 					JUMP_ANIMATION.play("jump", 0.25)
 				velocity.y += jump_velocity
@@ -306,35 +311,6 @@ func handle_head_rotation():
 
 	mouseInput = Vector2(0,0)
 	HEAD.rotation.x = clamp(HEAD.rotation.x, deg_to_rad(-90), deg_to_rad(90))
-
-
-func check_controls(): # If you add a control, you might want to add a check for it here.
-	# The actions are being disabled so the engine doesn't halt the entire project in debug mode
-	if !InputMap.has_action(controls.JUMP):
-		push_error("No control mapped for jumping. Please add an input map control. Disabling jump.")
-		jumping_enabled = false
-	if !InputMap.has_action(controls.LEFT):
-		push_error("No control mapped for move left. Please add an input map control. Disabling movement.")
-		immobile = true
-	if !InputMap.has_action(controls.RIGHT):
-		push_error("No control mapped for move right. Please add an input map control. Disabling movement.")
-		immobile = true
-	if !InputMap.has_action(controls.FORWARD):
-		push_error("No control mapped for move forward. Please add an input map control. Disabling movement.")
-		immobile = true
-	if !InputMap.has_action(controls.BACKWARD):
-		push_error("No control mapped for move backward. Please add an input map control. Disabling movement.")
-		immobile = true
-	if !InputMap.has_action(controls.PAUSE):
-		push_error("No control mapped for pause. Please add an input map control. Disabling pausing.")
-		pausing_enabled = false
-	if !InputMap.has_action(controls.CROUCH):
-		push_error("No control mapped for crouch. Please add an input map control. Disabling crouching.")
-		crouch_enabled = false
-	if !InputMap.has_action(controls.SPRINT):
-		push_error("No control mapped for sprint. Please add an input map control. Disabling sprinting.")
-		sprint_enabled = false
-
 #endregion
 
 #region State Handling
@@ -342,7 +318,7 @@ func check_controls(): # If you add a control, you might want to add a check for
 func handle_state(moving):
 	if sprint_enabled:
 		if sprint_mode == 0:
-			if Input.is_action_pressed(controls.SPRINT) and state != "crouching":
+			if Input.is_key_pressed(controls.SPRINT) and state != "crouching":
 				if moving:
 					if state != "sprinting":
 						enter_sprint_state()
@@ -354,9 +330,9 @@ func handle_state(moving):
 		elif sprint_mode == 1:
 			if moving:
 				# If the player is holding sprint before moving, handle that scenario
-				if Input.is_action_pressed(controls.SPRINT) and state == "normal":
+				if Input.is_key_pressed(controls.SPRINT) and state == "normal":
 					enter_sprint_state()
-				if Input.is_action_just_pressed(controls.SPRINT):
+				if Input.is_key_pressed(controls.SPRINT):
 					match state:
 						"normal":
 							enter_sprint_state()
@@ -367,13 +343,13 @@ func handle_state(moving):
 
 	if crouch_enabled:
 		if crouch_mode == 0:
-			if Input.is_action_pressed(controls.CROUCH) and state != "sprinting":
+			if Input.is_key_pressed(controls.CROUCH) and state != "sprinting":
 				if state != "crouching":
 					enter_crouch_state()
 			elif state == "crouching" and !$CrouchCeilingDetection.is_colliding():
 				enter_normal_state()
 		elif crouch_mode == 1:
-			if Input.is_action_just_pressed(controls.CROUCH):
+			if Input.is_key_pressed(controls.CROUCH):
 				match state:
 					"normal":
 						enter_crouch_state()
@@ -514,7 +490,7 @@ func _unhandled_input(event : InputEvent):
 	# Toggle debug menu
 	
 	## Where we're going, we don't need InputMap
-	#if Input.is_action_just_pressed("ui_focus_next"):
+	#if Input.is_key_just_pressed("ui_focus_next"):
 		#$UserInterface/DebugPanel.visible = !$UserInterface/DebugPanel.visible
 	# Toggle spatial audio effects with F8 key
 
@@ -539,7 +515,7 @@ func update_camera_fov():
 		CAMERA.fov = lerp(CAMERA.fov, 75.0, 0.3)
 
 func handle_pausing():
-	if Input.is_action_just_pressed(controls.PAUSE):
+	if Input.is_key_pressed(controls.PAUSE):
 		# You may want another node to handle pausing, because this player may get paused too.
 		match Input.mouse_mode:
 			Input.MOUSE_MODE_CAPTURED:

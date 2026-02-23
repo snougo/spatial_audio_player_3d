@@ -96,6 +96,7 @@ enum AttenuationFunction {
 	USER_DEFINED,  ## Use a custom attenuation curve provided by the user.
 }
 
+var _last_wall_absorptions: Array = []
 #region EXPORTS
 
 ## How the room-sensing rays are arranged around the emitter.
@@ -374,7 +375,7 @@ enum AttenuationFunction {
 
 ## Lowpass cutoff when the listener is fully occluded by a wall.
 ## Lower values produce a heavier, more muffled sound.
-@export_custom(PROPERTY_HINT_NONE, "suffix:Hz") var occluded_lowpass_cutoff : int = 600
+@export_custom(PROPERTY_HINT_NONE, "suffix:Hz") var occluded_lowpass_cutoff_minimum : int = 600
 
 ## Lowpass cutoff when the listener has clear line of sight to the emitter.
 @export_custom(PROPERTY_HINT_NONE, "suffix:Hz") var open_lowpass_cutoff : int = 20000
@@ -530,7 +531,7 @@ var _debug_rays_scroll : ScrollContainer = null
 var _debug_rays_toggle : Button = null
 var _debug_rays_expanded := false
 var _debug_connector_line : Line2D = null
-
+var _debug_occl_abs_weight: float = 0.0
 ## Per-ray expansion state for reflection dropdowns in debug overlay.
 var _debug_ray_reflections_expanded = {}  # int index -> bool
 
@@ -554,6 +555,11 @@ static func set_global_effects_disabled(disabled: bool) -> void:
 #endregion
 
 #region SOUND SPEED DELAY
+
+## Overrides [method AudioStreamPlayer3D.play] to optionally delay playback
+## based on the listener's distance and [param speed_of_sound].
+func play(from_position: float = 0.0) -> void:
+	_play_with_optional_delay(from_position)
 
 
 ## Call this directly if the [method play] override isn't dispatched
@@ -611,6 +617,11 @@ func _deferred_play(from_position: float) -> void:
 		super.play(from_position)
 		emit_signal("spatial_audio_playback_started")
 
+
+func stop() -> void:
+	# Override to emit a stopped signal
+	super.stop()
+	emit_signal("spatial_audio_playback_stopped")
 #endregion
 
 #region LIFECYCLE
@@ -1100,7 +1111,7 @@ func _update_volume_attenuation(listener: Node3D) -> void:
 	# Interpolate in linear amplitude (not dB) for perceptually smoother falloff.
 	var min_gain := pow(10.0, minimum_volume_db / 20.0)
 	var base_gain := pow(10.0, _base_volume_db / 20.0)
-	var gain = lerp(min_gain, base_gain, att)
+	var gain := lerp(min_gain, base_gain, att)
 	gain = max(gain, 1e-8)
 	_target_volume_db = 20.0 * log(gain) / log(10.0)
 
@@ -1408,7 +1419,7 @@ func _update_reverb() -> void:
 	_last_reverb_damping = _target_reverb_damping
 #endregion
 
-#region LOWPASS / OCCLUSION (single target raycast)
+#region OCCLUSION (single target raycast)
 
 func _update_lowpass(listener: Node3D) -> void:
 	if _lowpass_filter == null or not audio_occlusion:
@@ -1470,12 +1481,13 @@ func _update_lowpass(listener: Node3D) -> void:
 	var prev_wall_count := _last_wall_count
 	var lp_cutoff := float(open_lowpass_cutoff)
 	var open_hz := float(open_lowpass_cutoff)
-	var occl_hz := float(occluded_lowpass_cutoff)
+	var occl_hz := float(occluded_lowpass_cutoff_minimum)
 	var wall_materials : Array[String] = []
 
 	# Cumulative volume reduction from low-frequency blocking per wall.
 	var vol_reduction_db := 0.0
 
+	_last_wall_absorptions.clear()
 	for _hit_idx in max_occlusion_hits:
 		params.from = march_pos
 		params.to = listener.global_position
@@ -1501,11 +1513,13 @@ func _update_lowpass(listener: Node3D) -> void:
 
 		var t_high := fallback_transmission
 		var t_low := fallback_transmission
+		var absorption_weighted := -1.0
 
 		if acoustic_body != null and acoustic_body.acoustic_material != null:
 			var mat := acoustic_body.acoustic_material
 			t_high = mat.transmission_high
 			t_low = mat.transmission_low
+			absorption_weighted = 0.7 * mat.absorption_high + 0.3 * mat.absorption_mid
 			# Use the resource name, or the file name, or a fallback.
 			if mat.resource_name != "":
 				mat_name = mat.resource_name
@@ -1516,10 +1530,21 @@ func _update_lowpass(listener: Node3D) -> void:
 
 		wall_materials.append(mat_name)
 
-		# High-frequency transmission drives the lowpass cutoff.
-		# t_high is 0-1 where 0 = blocks all highs, 1 = transparent.
-		# Factor the cutoff down: a wall with t_high=0.03 lets 3% through.
-		lp_cutoff *= clampf(t_high, 0.001, 1.0)
+		# Store absorption for debug overlay
+		if absorption_weighted >= 0.0:
+			_last_wall_absorptions.append(clampf(absorption_weighted, 0.0, 1.0))
+		else:
+			_last_wall_absorptions.append(-1.0)
+
+		# Use weighted absorption to interpolate cutoff for this wall.
+		# 0 absorption = open_hz (no muffling), 1 absorption = occl_hz (max muffling)
+		if absorption_weighted >= 0.0:
+			var interp := clampf(absorption_weighted, 0.0, 1.0)
+			var wall_cutoff := open_hz - interp * (open_hz - occl_hz)
+			lp_cutoff *= wall_cutoff / open_hz
+		else:
+			# Fallback: use transmission_high as before
+			lp_cutoff *= clampf(t_high, 0.001, 1.0)
 
 		# Low-frequency blocking contributes a volume reduction.
 		# Convert transmission fraction to dB loss per wall, scaled by strength.
@@ -1531,6 +1556,7 @@ func _update_lowpass(listener: Node3D) -> void:
 		march_pos = hit_point + ray_dir * 0.02
 
 	_last_wall_count = wall_count
+	_last_wall_absorptions.clear()
 	_last_wall_materials = wall_materials
 
 	# Emit occlusion signals when wall count or cutoff changes
@@ -1545,7 +1571,7 @@ func _update_lowpass(listener: Node3D) -> void:
 		_target_lowpass_cutoff = open_hz
 		return
 
-	# Clamp so combined cutoff never drops below the occluded floor.
+	# Clamp so combined cutoff never drops below the minimum.
 	lp_cutoff = clampf(lp_cutoff, occl_hz, open_hz)
 
 	# Apply volume reduction from low-frequency blocking.
@@ -1849,14 +1875,15 @@ func _print_debug(listener: Node3D) -> void:
 
 	# Surface absorption summary
 	if surface_absorption:
+		var valid_abs := []
+		for a in _last_wall_absorptions:
+			if typeof(a) == TYPE_FLOAT and a >= 0.0:
+				valid_abs.append(a)
+		# Avg absorption for surfaces
 		var _abs_sum := 0.0
 		var _abs_count := 0
-		var _abs_floor_cos := cos(deg_to_rad(floor_angle_threshold))
-		var omni_cnt := maxi(_distances.size() - 1, 0)
-		for i in range(omni_cnt):
-			if ignore_floor and i < _ray_directions.size() and _ray_directions[i].y <= -_abs_floor_cos:
-				continue
-			if i < _ray_absorptions.size() and _ray_absorptions[i] >= 0.0:
+		for i in range(_ray_absorptions.size()):
+			if _ray_absorptions[i] >= 0.0:
 				_abs_sum += _ray_absorptions[i]
 				_abs_count += 1
 		var avg_abs := _abs_sum / float(maxi(_abs_count, 1))
