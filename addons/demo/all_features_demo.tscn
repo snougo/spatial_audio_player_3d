@@ -475,7 +475,6 @@ ray_distribution = 1
 scatter_shape = NodePath("..")
 attenuation_function = 4
 enable_air_absorption = true
-occluded_lowpass_cutoff_minimum = null
 display_debug_info = true
 
 [node name="Occlusion Glass" type="CSGBox3D" parent="Occlusion Layering" unique_id=1953167790]
@@ -647,7 +646,6 @@ falloff_distance = 100.0
 enable_air_absorption = true
 enable_sound_delay = true
 speed_of_sound = 50.0
-occluded_lowpass_cutoff_minimum = null
 debug_draw_playing_state = true
 
 [node name="Speaker2" parent="Distance" unique_id=1120768999 instance=ExtResource("3_5iubo")]
@@ -663,7 +661,6 @@ falloff_distance = 100.0
 enable_air_absorption = true
 enable_sound_delay = true
 speed_of_sound = 50.0
-occluded_lowpass_cutoff_minimum = null
 debug_draw_playing_state = true
 
 [node name="Speaker3" parent="Distance" unique_id=887381498 instance=ExtResource("3_5iubo")]
@@ -679,7 +676,6 @@ falloff_distance = 100.0
 enable_air_absorption = true
 enable_sound_delay = true
 speed_of_sound = 50.0
-occluded_lowpass_cutoff_minimum = null
 debug_draw_playing_state = true
 
 [node name="Label3D" type="Label3D" parent="Distance" unique_id=411414648]
@@ -777,7 +773,6 @@ fibonacci_ray_reflections = 2
 max_raycast_distance = 100.0
 attenuation_function = 4
 enable_air_absorption = true
-occluded_lowpass_cutoff_minimum = null
 display_debug_info = true
 
 [node name="Auditorium" type="Node3D" parent="Room Size Reverb" unique_id=2069073281]
@@ -898,7 +893,6 @@ falloff_distance = 45.0
 attenuation_function = 4
 inner_radius_panning_strength = 2.0
 enable_air_absorption = true
-occluded_lowpass_cutoff_minimum = null
 display_debug_info = true
 
 [node name="Speaker2" parent="Room Size Reverb/Auditorium" unique_id=995390485 instance=ExtResource("3_5iubo")]
@@ -915,7 +909,6 @@ falloff_distance = 45.0
 attenuation_function = 4
 inner_radius_panning_strength = 2.0
 enable_air_absorption = true
-occluded_lowpass_cutoff_minimum = null
 display_debug_info = true
 
 [node name="Speaker3" parent="Room Size Reverb/Auditorium" unique_id=1228048306 instance=ExtResource("3_5iubo")]
@@ -932,7 +925,6 @@ falloff_distance = 45.0
 attenuation_function = 4
 inner_radius_panning_strength = 2.0
 enable_air_absorption = true
-occluded_lowpass_cutoff_minimum = null
 display_debug_info = true
 
 [node name="Speaker4" parent="Room Size Reverb/Auditorium" unique_id=896955947 instance=ExtResource("3_5iubo")]
@@ -950,7 +942,6 @@ attenuation_function = 4
 inner_radius_panning_strength = 2.0
 enable_air_absorption = true
 enable_sound_delay = true
-occluded_lowpass_cutoff_minimum = null
 display_debug_info = true
 
 [node name="Speaker5" parent="Room Size Reverb/Auditorium" unique_id=539218768 instance=ExtResource("3_5iubo")]
@@ -967,7 +958,6 @@ falloff_distance = 45.0
 attenuation_function = 4
 inner_radius_panning_strength = 2.0
 enable_air_absorption = true
-occluded_lowpass_cutoff_minimum = null
 display_debug_info = true
 
 [node name="Medum Box" type="CSGCombiner3D" parent="Room Size Reverb" unique_id=1642362698]
@@ -1004,7 +994,6 @@ shape_scatter_randomness = 25
 fibonacci_ray_reflections = 2
 max_raycast_distance = 100.0
 enable_air_absorption = true
-occluded_lowpass_cutoff_minimum = null
 display_debug_info = true
 
 [node name="AcousticBody" type="Node" parent="Room Size Reverb/Medum Box" unique_id=1499564444]
