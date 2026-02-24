@@ -1,6 +1,6 @@
 # Spatial Audio Extended — Wiki
 
-> **Version 2.4.0** · by [danikakes](https://github.com/danikakes) · Godot 4.x
+> **Version 3.0.0** · by [danikakes](https://github.com/danikakes) · Godot 4.x
 
 **Spatial Audio Extended** is an advanced, drop-in replacement for Godot's built-in `AudioStreamPlayer3D` that adds physically-inspired, real-time spatial audio effects to your 3D games.
 
