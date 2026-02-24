@@ -13,6 +13,10 @@ config_version=5
 config/name="spatial audio player 3d"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/spatial_audio_extended/plugin.cfg")
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

@@ -49,7 +49,7 @@ func _show_button(target: Node3D) -> void:
 	_add_acoustic_button.add_theme_constant_override("h_separation", 4)
 
 	# Scale the icon down to 16×16 so it doesn't inflate the toolbar.
-	var src_tex : Texture2D = preload("acoustic_body.svg")
+	var src_tex : Texture2D = preload("images/acoustic_body.svg")
 	var img := src_tex.get_image()
 	img.resize(16, 16, Image.INTERPOLATE_LANCZOS)
 	_add_acoustic_button.icon = ImageTexture.create_from_image(img)
